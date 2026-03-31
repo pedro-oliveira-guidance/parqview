@@ -33,7 +33,12 @@ if uploaded_file is None:
 
 
 @st.cache_data
-def load_file(file_bytes: bytes, ftype: str) -> pd.DataFrame:
+def get_excel_sheets(file_bytes: bytes) -> list[str]:
+    return pd.ExcelFile(io.BytesIO(file_bytes)).sheet_names
+
+
+@st.cache_data
+def load_file(file_bytes: bytes, ftype: str, sheet: str | None = None) -> pd.DataFrame:
     buf = io.BytesIO(file_bytes)
     if ftype == "Parquet":
         return pd.read_parquet(buf)
@@ -42,11 +47,18 @@ def load_file(file_bytes: bytes, ftype: str) -> pd.DataFrame:
     if ftype == "JSON":
         return pd.read_json(buf)
     if ftype == "Excel":
-        return pd.read_excel(buf)
+        return pd.read_excel(buf, sheet_name=sheet)
     raise ValueError(f"Tipo não suportado: {ftype}")
 
 
-df = load_file(uploaded_file.read(), file_type)
+file_bytes = uploaded_file.read()
+selected_sheet = None
+
+if file_type == "Excel":
+    sheets = get_excel_sheets(file_bytes)
+    selected_sheet = st.selectbox("Aba", sheets, index=0)
+
+df = load_file(file_bytes, file_type, selected_sheet)
 
 # Header metrics
 col1, col2, col3 = st.columns(3)
