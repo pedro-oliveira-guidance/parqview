@@ -1,4 +1,5 @@
 import io
+import duckdb
 import pandas as pd
 import streamlit as st
 
@@ -32,7 +33,7 @@ col2.metric("Colunas", len(df.columns))
 memory_mb = df.memory_usage(deep=True).sum() / (1024 ** 2)
 col3.metric("Memória", f"{memory_mb:.2f} MB")
 
-tab_schema, tab_sample, tab_stats = st.tabs(["Schema", "Amostra (100 linhas)", "Estatísticas"])
+tab_schema, tab_sample, tab_stats, tab_sql = st.tabs(["Schema", "Amostra (100 linhas)", "Estatísticas", "SQL"])
 
 with tab_schema:
     schema_df = pd.DataFrame(
@@ -58,3 +59,14 @@ with tab_stats:
         st.dataframe(numeric_df.describe().T, use_container_width=True)
     else:
         st.info("Nenhuma coluna numérica encontrada.")
+
+with tab_sql:
+    st.caption("A tabela está registrada como `df`. Exemplo: `SELECT * FROM df LIMIT 10`")
+    query = st.text_area("Query SQL", value="SELECT * FROM df LIMIT 10", height=120)
+    if st.button("Executar"):
+        try:
+            result = duckdb.query_df(df, "df", query).df()
+            st.success(f"{len(result):,} linha(s) retornada(s)")
+            st.dataframe(result, use_container_width=True)
+        except Exception as e:
+            st.error(f"Erro: {e}")
