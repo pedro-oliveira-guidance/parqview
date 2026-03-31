@@ -12,19 +12,41 @@ st.set_page_config(
 st.title("parqview")
 st.caption("Arraste um arquivo Parquet para inspecionar schema, dados e estatísticas.")
 
-uploaded_file = st.file_uploader("Selecione ou arraste um arquivo .parquet", type=["parquet"])
+FILE_TYPES = {
+    "Parquet": ["parquet"],
+    "CSV": ["csv"],
+    "JSON": ["json"],
+    "Excel": ["xlsx", "xls"],
+}
+
+file_type = st.selectbox("Tipo de arquivo", list(FILE_TYPES.keys()), index=0)
+accepted_extensions = FILE_TYPES[file_type]
+
+uploaded_file = st.file_uploader(
+    f"Selecione ou arraste um arquivo .{'/'.join(accepted_extensions)}",
+    type=accepted_extensions,
+)
 
 if uploaded_file is None:
-    st.info("Nenhum arquivo carregado. Arraste um .parquet acima para começar.")
+    st.info("Nenhum arquivo carregado. Selecione o tipo e arraste o arquivo acima.")
     st.stop()
 
 
 @st.cache_data
-def load_parquet(file_bytes: bytes) -> pd.DataFrame:
-    return pd.read_parquet(io.BytesIO(file_bytes))
+def load_file(file_bytes: bytes, ftype: str) -> pd.DataFrame:
+    buf = io.BytesIO(file_bytes)
+    if ftype == "Parquet":
+        return pd.read_parquet(buf)
+    if ftype == "CSV":
+        return pd.read_csv(buf)
+    if ftype == "JSON":
+        return pd.read_json(buf)
+    if ftype == "Excel":
+        return pd.read_excel(buf)
+    raise ValueError(f"Tipo não suportado: {ftype}")
 
 
-df = load_parquet(uploaded_file.read())
+df = load_file(uploaded_file.read(), file_type)
 
 # Header metrics
 col1, col2, col3 = st.columns(3)
