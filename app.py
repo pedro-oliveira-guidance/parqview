@@ -99,7 +99,9 @@ with tab_sql:
     query = st.text_area("Query SQL", value="SELECT * FROM df LIMIT 10", height=120)
     if st.button("Executar"):
         try:
-            result = duckdb.query_df(df, "df", query).df()
+            con = duckdb.connect()
+            con.register("df", df)
+            result = con.sql(query).df()
             st.success(f"{len(result):,} linha(s) retornada(s)")
             st.dataframe(result, use_container_width=True)
         except Exception as e:
